@@ -6,9 +6,6 @@
 	objectVersion = 110;
 	objects = {
 
-/* Begin PBXBuildFile section */
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		A7449D643058F7390019646A /* 五行拳.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "五行拳.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A7B1AF8B30666606005C0435 /* ----Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "----Info.plist"; sourceTree = "<group>"; };
