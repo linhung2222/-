@@ -2,26 +2,56 @@
 //  FullScreenPunchViews.swift
 //  五行拳
 //
+//  全螢幕五行拳招對決演出視圖模組
+//  以高效能 SpriteKit 物理渲染引擎（60fps）驅動：
+//    - 金（劈拳）：神兵利刃刀芒出鞘，火星流光隨行
+//    - 木（崩拳）：神木如槍，翡翠螺旋氣勁與飛葉繽紛
+//    - 水（鑽拳）：毒龍鑽水，深藍巨浪水龍捲渦流激盪
+//    - 火（炮拳）：炮火連天，烈焰爆發與騰騰飛火
+//    - 土（橫拳）：泰山壓頂，厚重土黃岩峰與奔騰碎石
+//  並於碰撞時觸發白光衝擊波、粒子大爆發與鏡頭晃動打擊感
+//
 
 import SwiftUI
 import SpriteKit
 
 // MARK: - SpriteKit 出拳對決核心場景 (SpriteKit Punch Scene)
+
+/// 負責渲染雙方蓄勢發勁、疾衝碰撞之 SpriteKit 核心場景
 final class SpriteKitPunchScene: SKScene {
     
-    // 對決雙方屬性
+    // MARK: - 對決雙方屬性
+    
+    /// 左方選手姓名
     private let p1Name: String
+    /// 左方選手出拳五行屬性
     private let p1Element: FiveElement
+    /// 右方選手姓名
     private let p2Name: String
+    /// 右方選手出拳五行屬性
     private let p2Element: FiveElement
+    /// 雙方拳勁撞擊後完成之回呼閉包
     private let onClashComplete: (() -> Void)?
     
-    // 場景節點
+    // MARK: - 場景節點
+    
+    /// 包含場景所有動態物件之世界節點（便於統一施加震動鏡頭效果）
     private let worldNode = SKNode()
+    /// 左方出拳實體節點
     private var p1PunchNode: SKNode?
+    /// 右方出拳實體節點
     private var p2PunchNode: SKNode?
+    /// 防止重複觸發碰撞衝擊的旗標
     private var hasImpacted = false
     
+    /// 初始化 SpriteKit 出拳場景
+    /// - Parameters:
+    ///   - size: 場景畫布大小
+    ///   - p1Name: 左方選手名稱
+    ///   - p1Element: 左方出拳五行
+    ///   - p2Name: 右方選手名稱
+    ///   - p2Element: 右方出拳五行
+    ///   - onClashComplete: 碰撞演出結束後之回呼
     init(
         size: CGSize,
         p1Name: String,
@@ -36,7 +66,7 @@ final class SpriteKitPunchScene: SKScene {
         self.p2Element = p2Element
         self.onClashComplete = onClashComplete
         super.init(size: size)
-        self.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+        self.anchorPoint = CGPoint(x: 0.5, y: 0.5) // 將座標原點置於螢幕中心 (0, 0)
         self.scaleMode = .resizeFill
         self.backgroundColor = SKColor(red: 0.04, green: 0.05, blue: 0.08, alpha: 1.0)
     }
@@ -45,6 +75,7 @@ final class SpriteKitPunchScene: SKScene {
         fatalError("init(coder:) has not been implemented")
     }
     
+    /// 當場景載入至 SKView 時觸發
     override func didMove(to view: SKView) {
         removeAllChildren()
         addChild(worldNode)
@@ -53,6 +84,8 @@ final class SpriteKitPunchScene: SKScene {
     }
     
     // MARK: - 1. 背景神秘氣脈星雲與太極法陣
+    
+    /// 建構背景旋轉之八卦五行星軌與漂浮靈氣微粒
     private func setupBackground() {
         let minDim = min(size.width, size.height)
         let ringRadius = max(70, minDim * 0.38)
@@ -66,7 +99,7 @@ final class SpriteKitPunchScene: SKScene {
         worldNode.addChild(ring)
         ring.run(SKAction.repeatForever(SKAction.rotate(byAngle: .pi, duration: 16.0)))
         
-        // 外層旋轉八卦星軌光環
+        // 外層逆時針旋轉八卦星軌光環
         let outerRing = SKShapeNode(circleOfRadius: ringRadius * 1.25)
         outerRing.position = .zero
         outerRing.strokeColor = SKColor.white.withAlphaComponent(0.04)
@@ -74,7 +107,7 @@ final class SpriteKitPunchScene: SKScene {
         worldNode.addChild(outerRing)
         outerRing.run(SKAction.repeatForever(SKAction.rotate(byAngle: -.pi, duration: 24.0)))
         
-        // 背景微光浮游靈氣粒子
+        // 背景微光浮游靈氣粒子發射器
         let bgDust = SKEmitterNode()
         bgDust.particleTexture = SKTextureGenerator.glowCircle(size: 24)
         bgDust.particleBirthRate = 18
@@ -94,6 +127,8 @@ final class SpriteKitPunchScene: SKScene {
     }
     
     // MARK: - 2. 構建並發射兩位玩家的五行拳術
+    
+    /// 配置雙方出拳發勁的三段式時間軸（蓄力吸氣 -> 疾衝突擊 -> 震撼交鋒）
     private func setupPunches() {
         let span = max(110, min(size.width * 0.36, 170))
         let p1StartX: CGFloat = -span
@@ -101,19 +136,19 @@ final class SpriteKitPunchScene: SKScene {
         let clashX1: CGFloat = -42
         let clashX2: CGFloat = 42
         
-        // 構建 P1 出拳實體 (由左向右出拳)
+        // 構建 P1 出拳實體（由左向右發勁）
         let p1Node = makePunchNode(for: p1Element, isFacingRight: true)
         p1Node.position = CGPoint(x: p1StartX, y: 0)
         worldNode.addChild(p1Node)
         self.p1PunchNode = p1Node
         
-        // 構建 P2 出拳實體 (由右向左出拳)
+        // 構建 P2 出拳實體（由右向左發勁）
         let p2Node = makePunchNode(for: p2Element, isFacingRight: false)
         p2Node.position = CGPoint(x: p2StartX, y: 0)
         worldNode.addChild(p2Node)
         self.p2PunchNode = p2Node
         
-        // 1. 蓄力階段 (0.0s ~ 0.5s)：震動與吸氣
+        // 階段 1：蓄力吸氣階段 (0.0s ~ 0.5s)：放大凝聚並微幅後撤蓄勢
         let p1Charge = SKAction.sequence([
             SKAction.scale(to: 1.15, duration: 0.45),
             SKAction.moveBy(x: -12, y: 0, duration: 0.1)
@@ -126,7 +161,7 @@ final class SpriteKitPunchScene: SKScene {
         p1Node.run(p1Charge)
         p2Node.run(p2Charge)
         
-        // 2. 出拳發勁疾衝階段 (0.55s ~ 1.35s)：雷霆突擊
+        // 階段 2：出拳發勁疾衝階段 (0.55s ~ 1.35s)：雷霆突擊衝向中央
         let strikeDuration: TimeInterval = 0.8
         let strike1 = SKAction.moveTo(x: clashX1, duration: strikeDuration)
         strike1.timingMode = .easeIn
@@ -145,7 +180,7 @@ final class SpriteKitPunchScene: SKScene {
         p1Node.run(p1Strike)
         p2Node.run(p2Strike)
         
-        // 3. 碰撞交會時刻 (1.35s)
+        // 階段 3：碰撞交會時刻 (1.35s)
         let totalTimeToClash = 0.55 + strikeDuration
         let waitAndClash = SKAction.sequence([
             SKAction.wait(forDuration: totalTimeToClash),
@@ -157,6 +192,12 @@ final class SpriteKitPunchScene: SKScene {
     }
     
     // MARK: - 3. 生成具備強烈五行象徵的拳招實體 (SKShapeNode + SKEmitterNode + Actions)
+    
+    /// 建立包含核心光球、漢字拳印、呼吸光環及專屬粒子尾跡的拳招節點
+    /// - Parameters:
+    ///   - element: 對應的五行元素
+    ///   - isFacingRight: 是否面朝右側突進
+    /// - Returns: 組裝完成的 SKNode
     private func makePunchNode(for element: FiveElement, isFacingRight: Bool) -> SKNode {
         let container = SKNode()
         let directionMultiplier: CGFloat = isFacingRight ? 1.0 : -1.0
@@ -169,7 +210,7 @@ final class SpriteKitPunchScene: SKScene {
         coreCircle.glowWidth = 6
         container.addChild(coreCircle)
         
-        // 拳印漢字標誌（採用元素字體）
+        // 拳印漢字標誌（採用俐方體像素字型）
         let charLabel = SKLabelNode(text: String(element.rawValue.first ?? "拳"))
         charLabel.fontName = "Cubic_11"
         charLabel.fontSize = 24
@@ -178,7 +219,7 @@ final class SpriteKitPunchScene: SKScene {
         charLabel.horizontalAlignmentMode = .center
         container.addChild(charLabel)
         
-        // 外層呼吸氣旋
+        // 外層呼吸氣旋光環
         let aura = SKShapeNode(circleOfRadius: 46)
         aura.strokeColor = element.skColor.withAlphaComponent(0.45)
         aura.lineWidth = 2
@@ -206,7 +247,7 @@ final class SpriteKitPunchScene: SKScene {
             blade.glowWidth = 5
             container.addChild(blade)
             
-            // 刀鋒閃光金芒
+            // 刀鋒閃光金芒閃爍
             let bladeGleam = SKAction.sequence([
                 SKAction.fadeAlpha(to: 0.4, duration: 0.2),
                 SKAction.fadeAlpha(to: 1.0, duration: 0.2)
@@ -273,7 +314,7 @@ final class SpriteKitPunchScene: SKScene {
             container.addChild(waterTrail)
             
         case .fire:
-            // 火·炮拳：炮火連天，如火龍噴吐烈焰與騰騰飛騰的火星
+            // 火·炮拳：炮火連天，如火龍噴吐烈焰與騰騰飛火
             let flameCore = SKShapeNode(circleOfRadius: 36)
             flameCore.fillColor = SKColor(red: 1.0, green: 0.3, blue: 0.05, alpha: 0.75)
             flameCore.strokeColor = SKColor.yellow
@@ -323,6 +364,8 @@ final class SpriteKitPunchScene: SKScene {
     }
     
     // MARK: - 4. 拳勁對撞大爆炸 (Clash Impact Explosions & Screen Shake)
+    
+    /// 當雙方拳勁抵達交會點時觸發強烈爆炸反彈與鏡頭晃動
     private func triggerClashImpact() {
         guard !hasImpacted else { return }
         hasImpacted = true
@@ -374,7 +417,7 @@ final class SpriteKitPunchScene: SKScene {
         burst2.position = .zero
         worldNode.addChild(burst2)
         
-        // 4. 震撼螢幕震動
+        // 4. 震撼螢幕晃動
         worldNode.run(SKAnimationHelper.screenShake(amplitude: 14, duration: 0.4))
         
         // 5. 衝擊完成後延遲 0.8 秒回調通知過渡到生剋結果
@@ -389,17 +432,28 @@ final class SpriteKitPunchScene: SKScene {
 }
 
 // MARK: - SwiftUI 出拳發勁全螢幕展示視圖 (FullScreenPunchShowdownView)
+
+/// 封裝 SpriteKitPunchScene 並提供上方對戰抬頭名牌（HUD）與下方操作按鈕（重播、看結果、關閉）的 SwiftUI 容器視圖
 struct FullScreenPunchShowdownView: View {
+    /// 左方選手姓名
     let p1Name: String
+    /// 左方選手五行
     let p1Element: FiveElement
+    /// 右方選手姓名
     let p2Name: String
+    /// 右方選手五行
     let p2Element: FiveElement
+    /// 關閉退出視圖回呼
     var onDismiss: (() -> Void)? = nil
+    /// 推進至生剋結果階段之回呼
     let onTransitionToClash: () -> Void
     
+    /// 用於強制刷新重播 SpriteKit 場景的 UUID
     @State private var sceneId = UUID()
+    /// 防止重複觸發切換頁面的標記
     @State private var hasAutoNavigated = false
     
+    /// 標準初始化方法
     init(
         p1Name: String,
         p1Element: FiveElement,
@@ -416,6 +470,7 @@ struct FullScreenPunchShowdownView: View {
         self.onTransitionToClash = onTransitionToClash
     }
     
+    /// 相容性初始化方法（接受 source/target 命名慣例）
     init(
         sourceName: String,
         sourceElement: FiveElement,
@@ -434,7 +489,7 @@ struct FullScreenPunchShowdownView: View {
     
     var body: some View {
         ZStack {
-            // SpriteKit 60fps 高性能全螢幕出拳場景，透過 GeometryReader 精準傳遞畫面尺寸
+            // SpriteKit 60fps 高效能全螢幕出拳場景，透過 GeometryReader 精準傳遞畫面尺寸
             GeometryReader { proxy in
                 let size = proxy.size.width > 0 && proxy.size.height > 0
                     ? proxy.size
@@ -595,6 +650,7 @@ struct FullScreenPunchShowdownView: View {
         }
     }
     
+    /// 依據最新尺寸建立 SpriteKitPunchScene 實體
     private func makeScene(size: CGSize) -> SKScene {
         SpriteKitPunchScene(
             size: size,
@@ -608,6 +664,7 @@ struct FullScreenPunchShowdownView: View {
         )
     }
     
+    /// 推進至生剋結果視圖
     private func advanceToClash() {
         guard !hasAutoNavigated else { return }
         hasAutoNavigated = true

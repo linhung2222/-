@@ -2,21 +2,37 @@
 //  AnimationViews.swift
 //  五行拳
 //
+//  微縮與卡片式動態特效視圖模組
+//  包含五行個別出拳微縮視覺（大刀劈砍、青木拔地、狂濤奔湧、烈焰噴發、厚土鎮嶽）、
+//  兩兩生剋交互結算卡片（滋養修復、重創扣血與意境解說）以及平局勢均力敵特效
+//
 
 import SwiftUI
 
-// MARK: - 五行專屬出拳動態特效 (金：大刀一揮、木：樹木生長、水：大水沖刷、火：火焰噴發、土：泥土堆疊)
+// MARK: - 五行專屬出拳動態特效微縮視圖
 
+/// 單一五行拳種出拳動態微縮視圖
+/// - 金：金色大刀橫空劈砍，金芒弧光四射
+/// - 木：青木樹幹向上拔高，靈葉向外綻放
+/// - 水：狂浪巨濤滾滾向前，飛濺靈動水珠
+/// - 火：赤烈核心雙層烈焰，伴隨星火升騰
+/// - 土：三層基石與山嶽層疊，揚起震盪塵土
 struct ElementPunchEffectView: View {
+    /// 欲展示出拳招式之五行元素
     let element: FiveElement
+    /// 是否採用緊湊縮小尺寸版面
     var compact: Bool = false
     
+    /// 主出拳動畫進度（0.0 ~ 1.0）
     @State private var animPhase: CGFloat = 0
+    /// 光暈與標籤呼吸微動旗標
     @State private var pulse: Bool = false
+    /// 飛濺粒子激活用旗標
     @State private var particlesActive: Bool = false
     
     var body: some View {
         ZStack {
+            // 依元素屬性分流專屬動態幾何圖層
             switch element {
             case .metal:
                 metalBladeSlashView
@@ -30,7 +46,7 @@ struct ElementPunchEffectView: View {
                 earthStackView
             }
             
-            // 特效名稱與詩號標籤
+            // 招式名稱與五行圖示懸浮標籤
             VStack {
                 Spacer()
                 HStack(spacing: 4) {
@@ -68,6 +84,7 @@ struct ElementPunchEffectView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .onAppear {
+            // 觸發進場彈簧展開動態
             withAnimation(.spring(response: 0.6, dampingFraction: 0.65)) {
                 animPhase = 1.0
             }
@@ -80,7 +97,9 @@ struct ElementPunchEffectView: View {
         }
     }
     
-    // MARK: 1. 金：大刀一揮
+    // MARK: 1. 金：大刀一揮（劈拳破空）
+    
+    /// 金系劈拳微縮動態：金色大刀自右上斬向左下，帶動弧形刀光斬痕與金屬火花
     private var metalBladeSlashView: some View {
         ZStack {
             // 背景金芒衝擊光圈
@@ -119,11 +138,11 @@ struct ElementPunchEffectView: View {
             .opacity(animPhase > 0.2 ? 1.0 : 0.0)
             .shadow(color: .yellow, radius: 8)
             
-            // 金色大刀 (Broadsword)
+            // 金色大刀模型（刀尖、刀身、護手與握柄）
             VStack(spacing: 0) {
-                // 刀尖與刀身
+                // 刀尖與刀刃
                 ZStack(alignment: .top) {
-                    // 刀脊金色光澤
+                    // 刀身斜角漸層
                     Path { p in
                         p.move(to: CGPoint(x: 10, y: 0))
                         p.addLine(to: CGPoint(x: 20, y: 55))
@@ -138,7 +157,7 @@ struct ElementPunchEffectView: View {
                         )
                     )
                     
-                    // 刀刃高光流動
+                    // 刀刃高光流動條
                     Rectangle()
                         .fill(Color.white.opacity(0.8))
                         .frame(width: 2, height: 45)
@@ -146,13 +165,13 @@ struct ElementPunchEffectView: View {
                 }
                 .frame(width: 22, height: 55)
                 
-                // 護手
+                // 刀身護手
                 RoundedRectangle(cornerRadius: 3)
                     .fill(LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .leading, endPoint: .trailing))
                     .frame(width: 32, height: 7)
                     .shadow(radius: 2)
                 
-                // 刀柄與刀穗
+                // 刀柄與配重飾珠
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color(red: 0.35, green: 0.2, blue: 0.1))
                     .frame(width: 7, height: 18)
@@ -165,7 +184,7 @@ struct ElementPunchEffectView: View {
             .rotationEffect(.degrees(animPhase > 0.1 ? 30 : -55))
             .offset(x: animPhase > 0.1 ? 15 : -25, y: animPhase > 0.1 ? 5 : -15)
             
-            // 刀鋒火星散落
+            // 刀鋒斬擊火星飛散
             ForEach(0..<6, id: \.self) { i in
                 Circle()
                     .fill(Color.yellow)
@@ -179,7 +198,9 @@ struct ElementPunchEffectView: View {
         }
     }
     
-    // MARK: 2. 木：樹木生長
+    // MARK: 2. 木：樹木生長（崩拳生發）
+    
+    /// 木系崩拳微縮動態：樹幹由底部迅速拔高，嫩綠樹冠伴隨靈葉向外舒展
     private var woodGrowthView: some View {
         ZStack {
             // 靈氣自然綠色光環
@@ -187,13 +208,13 @@ struct ElementPunchEffectView: View {
                 .fill(RadialGradient(colors: [Color.green.opacity(0.25), .clear], center: .center, startRadius: 5, endRadius: 65))
                 .scaleEffect(animPhase > 0.2 ? 1.1 : 0.4)
             
-            // 樹幹向上拔高生長
+            // 樹木主體（樹冠與樹幹由下往上生長）
             VStack(spacing: 0) {
                 Spacer()
                 
                 // 樹冠枝葉簇
                 ZStack {
-                    // 主樹冠
+                    // 主樹冠圓形球團
                     Circle()
                         .fill(
                             LinearGradient(
@@ -205,7 +226,7 @@ struct ElementPunchEffectView: View {
                         .frame(width: compact ? 48 : 64, height: compact ? 42 : 56)
                         .scaleEffect(animPhase > 0.4 ? 1.0 : 0.1, anchor: .bottom)
                     
-                    // 嫩葉向外綻放
+                    // 嫩葉向外綻放旋轉
                     ForEach(0..<6, id: \.self) { i in
                         Image(systemName: "leaf.fill")
                             .font(.system(size: compact ? 13 : 17))
@@ -219,7 +240,7 @@ struct ElementPunchEffectView: View {
                     }
                 }
                 
-                // 樹幹
+                // 棕褐樹幹
                 RoundedRectangle(cornerRadius: 4)
                     .fill(
                         LinearGradient(
@@ -248,15 +269,17 @@ struct ElementPunchEffectView: View {
         }
     }
     
-    // MARK: 3. 水：大水沖刷
+    // MARK: 3. 水：大水沖刷（鑽拳狂浪）
+    
+    /// 水系鑽拳微縮動態：雙層澎湃浪濤由左至右席捲奔湧，點綴激昂飛濺的水珠
     private var waterSurgeView: some View {
         ZStack {
-            // 背景深藍旋渦
+            // 背景深藍水渦光暈
             Circle()
                 .fill(RadialGradient(colors: [Color.blue.opacity(0.3), .clear], center: .center, startRadius: 10, endRadius: 70))
                 .scaleEffect(pulse ? 1.15 : 0.95)
             
-            // 奔湧的浪濤曲線 (Layer 1)
+            // 奔湧的浪濤曲線（第一層厚浪）
             Path { p in
                 let w: CGFloat = compact ? 140 : 200
                 let h: CGFloat = compact ? 120 : 160
@@ -279,7 +302,7 @@ struct ElementPunchEffectView: View {
             )
             .offset(x: animPhase > 0.2 ? 0 : -50)
             
-            // 滔天巨浪浪尖 (Layer 2)
+            // 滔天巨浪白浪浪尖（第二層浪鋒）
             Path { p in
                 let w: CGFloat = compact ? 140 : 200
                 let h: CGFloat = compact ? 120 : 160
@@ -310,7 +333,9 @@ struct ElementPunchEffectView: View {
         }
     }
     
-    // MARK: 4. 火：火焰噴發
+    // MARK: 4. 火：火焰噴發（炮拳焚天）
+    
+    /// 火系炮拳微縮動態：雙重赤火與金黃火舌狂暴噴湧，伴隨火星粒子升騰
     private var fireEruptionView: some View {
         ZStack {
             // 炙熱紅光背景
@@ -346,7 +371,7 @@ struct ElementPunchEffectView: View {
                 .offset(y: compact ? -5 : -8)
                 .shadow(color: .yellow, radius: 5)
             
-            // 升騰火星
+            // 升騰之火星粒子
             ForEach(0..<8, id: \.self) { i in
                 Circle()
                     .fill(i % 2 == 0 ? Color.yellow : Color.orange)
@@ -360,7 +385,9 @@ struct ElementPunchEffectView: View {
         }
     }
     
-    // MARK: 5. 土：泥土堆疊
+    // MARK: 5. 土：泥土堆疊（橫拳鎮嶽）
+    
+    /// 土系橫拳微縮動態：厚實地基、中層堅石與頂部山嶽三層堆疊而起，震撼落定
     private var earthStackView: some View {
         ZStack {
             // 巍峨土黃光暈
@@ -371,7 +398,7 @@ struct ElementPunchEffectView: View {
             VStack(spacing: compact ? 2 : 4) {
                 Spacer()
                 
-                // 頂層山石 (第 3 層堆疊)
+                // 頂層山石（第 3 層堆疊，由天而降）
                 Image(systemName: "mountain.2.fill")
                     .font(.system(size: compact ? 28 : 38))
                     .foregroundStyle(
@@ -385,7 +412,7 @@ struct ElementPunchEffectView: View {
                     .opacity(animPhase > 0.6 ? 1.0 : 0.0)
                     .shadow(radius: 3)
                 
-                // 中層岩板 (第 2 層堆疊)
+                // 中層岩板（第 2 層堆疊）
                 HStack(spacing: compact ? 4 : 6) {
                     RoundedRectangle(cornerRadius: 5)
                         .fill(LinearGradient(colors: [Color(red: 0.65, green: 0.45, blue: 0.25), Color(red: 0.5, green: 0.32, blue: 0.18)], startPoint: .top, endPoint: .bottom))
@@ -398,7 +425,7 @@ struct ElementPunchEffectView: View {
                 .offset(y: animPhase > 0.3 ? 0 : -25)
                 .opacity(animPhase > 0.3 ? 1.0 : 0.0)
                 
-                // 底層磐石厚土 (第 1 層基石)
+                // 底層磐石厚土（第 1 層基石，橫向平穩鋪展）
                 RoundedRectangle(cornerRadius: 6)
                     .fill(
                         LinearGradient(
@@ -428,18 +455,24 @@ struct ElementPunchEffectView: View {
     }
 }
 
-// MARK: - 五行相生相剋互動動態特效 (結算時展演)
+// MARK: - 五行相生相剋互動動態特效卡片（結算時展演）
 
+/// 結算專用生剋卡片視圖
+/// 展示發起方與目標方之出拳圖示、生剋標籤（相生/相剋）、加減血浮標與詩意視覺解說
 struct ElementInteractionClashView: View {
+    /// 該次生剋事件之詳細資料
     let interaction: PairwiseInteraction
     
+    /// 進場彈簧位移階段階標
     @State private var animStep: CGFloat = 0
+    /// 撞擊衝擊白光/紅光閃爍旗標
     @State private var impactFlash: Bool = false
+    /// 漂浮光環與飄字循環旗標
     @State private var floatingEffect: Bool = false
     
     var body: some View {
         VStack(spacing: 8) {
-            // 標題與類型標籤
+            // 頂部標題與型態膠囊徽章
             HStack(spacing: 6) {
                 Image(systemName: interaction.effect == .heal ? "sparkles" : "bolt.fill")
                     .font(.caption)
@@ -452,6 +485,7 @@ struct ElementInteractionClashView: View {
                 
                 Spacer()
                 
+                // 生剋效果膠囊標籤
                 Text(interaction.effect == .heal ? "【相生】生命 +1" : "【相剋】生命 -1")
                     .font(.elementChinese(size: 11))
                     .fontWeight(.bold)
@@ -463,7 +497,7 @@ struct ElementInteractionClashView: View {
             }
             .padding(.horizontal, 12)
             
-            // 動態碰撞核心場景
+            // 動態碰撞核心場景看板
             ZStack {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.secondary.opacity(0.08))
@@ -478,7 +512,7 @@ struct ElementInteractionClashView: View {
                 
                 // 背景生剋能量流動波紋
                 if interaction.effect == .heal {
-                    // 相生：柔和旋轉光環
+                    // 相生：柔和旋轉環繞光圈
                     Circle()
                         .stroke(
                             AngularGradient(
@@ -490,14 +524,14 @@ struct ElementInteractionClashView: View {
                         .frame(width: 80, height: 80)
                         .rotationEffect(.degrees(floatingEffect ? 360 : 0))
                 } else {
-                    // 相剋：強烈衝擊波
+                    // 相剋：強烈衝擊波擴散環
                     Circle()
                         .stroke(Color.red.opacity(impactFlash ? 0.7 : 0), lineWidth: 4)
                         .scaleEffect(impactFlash ? 1.4 : 0.8)
                 }
                 
                 HStack(spacing: 24) {
-                    // 攻擊/施生方 (Source)
+                    // 攻擊／施生方（Source）
                     VStack(spacing: 4) {
                         Text(interaction.sourceName)
                             .font(.elementChinese(size: 11))
@@ -525,7 +559,7 @@ struct ElementInteractionClashView: View {
                     }
                     .offset(x: animStep > 0.2 ? 10 : -15)
                     
-                    // 中間交互作用動態標誌
+                    // 中間交互作用動態標誌（滋養綠箭頭 或 重創爆裂星）
                     VStack(spacing: 4) {
                         Image(systemName: interaction.effect == .heal ? "arrow.right.circle.fill" : "burst.fill")
                             .font(.system(size: 26))
@@ -537,7 +571,7 @@ struct ElementInteractionClashView: View {
                             .foregroundColor(interaction.effect == .heal ? .green : .red)
                     }
                     
-                    // 受作用方 (Target)
+                    // 受作用方（Target）
                     VStack(spacing: 4) {
                         Text(interaction.targetName)
                             .font(.elementChinese(size: 11))
@@ -558,7 +592,7 @@ struct ElementInteractionClashView: View {
                             }
                             .foregroundColor(.white)
                             
-                            // 結算飄字提示 (+1 / -1)
+                            // 結算飄字提示 (+1 / -1 懸浮氣泡)
                             Text(interaction.effect == .heal ? "+1" : "-1")
                                 .font(.elemental(size: 15))
                                 .foregroundColor(.white)
@@ -580,7 +614,7 @@ struct ElementInteractionClashView: View {
             }
             .padding(.horizontal, 8)
             
-            // 視覺意境解說
+            // 視覺意境解說詩句
             Text(interaction.visualNarration)
                 .font(.elementChinese(size: 12))
                 .foregroundColor(.secondary)
@@ -608,15 +642,20 @@ struct ElementInteractionClashView: View {
     }
 }
 
-// MARK: - 勢均力敵 (同拳無生剋) 碰撞特效
+// MARK: - 勢均力敵（同拳無生剋）碰撞特效
 
+/// 雙方出相同五行拳法時的平局碰撞視圖
+/// 展現氣機相抵、雙方內力震盪的平手動畫
 struct TieClashView: View {
+    /// 雙方共同出拳之五行元素
     let element: FiveElement
     
+    /// 衝擊外環擴散呼吸旗標
     @State private var ringPulse = false
     
     var body: some View {
         VStack(spacing: 8) {
+            // 頂部勢均力敵徽章
             HStack(spacing: 6) {
                 Image(systemName: "shield.lefthalf.filled")
                     .foregroundColor(.blue)
@@ -626,17 +665,20 @@ struct TieClashView: View {
                     .foregroundColor(.primary)
             }
             
+            // 碰撞主場景
             ZStack {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.secondary.opacity(0.08))
                     .frame(height: 95)
                 
+                // 震盪衝擊光環
                 Circle()
                     .stroke(element.primaryColor.opacity(0.5), lineWidth: 2)
                     .frame(width: 75, height: 75)
                     .scaleEffect(ringPulse ? 1.3 : 0.8)
                     .opacity(ringPulse ? 0.2 : 0.8)
                 
+                // 雙方相同拳印交鋒
                 HStack(spacing: 20) {
                     ZStack {
                         Circle().fill(element.primaryColor).frame(width: 40, height: 40)
@@ -655,6 +697,7 @@ struct TieClashView: View {
             }
             .padding(.horizontal, 8)
             
+            // 說明文字
             Text("雙方皆出【\(element.rawValue)】，氣機相抵，未分高下，無生剋發生！")
                 .font(.elementChinese(size: 12))
                 .foregroundColor(.secondary)

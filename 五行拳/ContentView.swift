@@ -2,27 +2,52 @@
 //  ContentView.swift
 //  五行拳
 //
+//  五行拳遊戲核心主介面視圖模組
+//  整合各項主畫面元件、對戰模式視圖、全螢幕動態劇院覆蓋層與啟動封面：
+//    1. 頂部看板（Header Section）：遊戲模式切換、人數選擇、血量規則設定、生命值勾玉量表
+//    2. 三大遊戲模式：
+//       - 人機切磋（vsAIView）：1 玩家 vs 1~3 AI，支援暗牌揭曉與動畫回播
+//       - 輪流暗選（pvpPassView）：2~4 玩家輪流傳遞裝置暗選出拳
+//       - 同屏對決（pvpTogetherView）：2 位玩家面對面同屏即時盲出拳
+//    3. 覆蓋層（Overlays）：
+//       - 全螢幕出拳發勁與生剋大劇院（FullScreenTheaterView）
+//       - 遊戲啟動封面（GameCoverView）
+//    4. 彈窗表單（Sheets）：
+//       - 五行生剋圖鑑與規則說明（RulesSheetView）
+//       - 對戰歷史戰報清單（HistorySheetView）
+//
 
 import SwiftUI
 
+// MARK: - 主視圖 (Main Content View)
+
+/// 五行拳主畫面視圖，統領全域遊戲狀態與所有子畫面呈現
 struct ContentView: View {
+    /// 遊戲核心視圖模型
     @State private var viewModel = FiveElementsGameViewModel()
     
+    /// 控制規則說明彈窗顯示旗標
     @State private var showRulesSheet = false
+    /// 控制對戰歷史戰報彈窗顯示旗標
     @State private var showHistorySheet = false
+    /// 控制重設確認對話框旗標
     @State private var showResetConfirm = false
+    /// 控制啟動封面顯示旗標（預設為 true 開啟封面）
     @State private var showCover = true
     
     var body: some View {
         @Bindable var vm = viewModel
         
         ZStack {
+            // 基礎導覽結構
             NavigationStack {
                 ZStack {
+                    // 全局柔和背景
                     Color.secondary.opacity(0.06)
                         .ignoresSafeArea()
                     
                     VStack(spacing: 0) {
+                        // 頂部看板（模式、人數、生命值設定與生命條）
                         headerSection
                             .padding(.horizontal)
                             .padding(.top, 6)
@@ -30,6 +55,7 @@ struct ContentView: View {
                         Divider()
                             .padding(.vertical, 8)
                         
+                        // 依據當前模式派發相應的棋盤操作視圖
                         Group {
                             switch viewModel.gameMode {
                             case .vsAI:
@@ -48,6 +74,7 @@ struct ContentView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
                 .toolbar {
+                    // 導覽列左側：生剋圖解規則按鈕
                     ToolbarItem(placement: .navigation) {
                         Button {
                             showRulesSheet = true
@@ -57,6 +84,7 @@ struct ContentView: View {
                         }
                     }
                     
+                    // 導覽列右側：返回封面、歷史戰報、重新開局按鈕
                     ToolbarItem(placement: .primaryAction) {
                         HStack(spacing: 12) {
                             Button {
@@ -84,12 +112,15 @@ struct ContentView: View {
                         }
                     }
                 }
+                // 生剋圖鑑與規則彈窗
                 .sheet(isPresented: $showRulesSheet) {
                     RulesSheetView()
                 }
+                // 歷史戰報彈窗
                 .sheet(isPresented: $showHistorySheet) {
                     HistorySheetView(viewModel: viewModel)
                 }
+                // 重開遊戲確認對話框
                 .alert("重新開始遊戲", isPresented: $showResetConfirm) {
                     Button("重新開始", role: .destructive) {
                         viewModel.restartGame()
@@ -98,6 +129,7 @@ struct ContentView: View {
                 } message: {
                     Text("確定要回復為初始 2 點生命值與獲勝 5 點生命值，開啟全新對決嗎？")
                 }
+                // 遊戲結束通告對話框
                 .alert(viewModel.gameOverTitle, isPresented: $vm.isGameOver) {
                     Button("再戰一局", role: .none) {
                         viewModel.resetGame()
@@ -147,12 +179,14 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - 頂部看板
+    // MARK: - 頂部看板 (Header Section)
+    
+    /// 包含模式切換、人數選擇、血量設定與玩家生命值勾玉量表的頂部看板
     private var headerSection: some View {
         @Bindable var vm = viewModel
         
         return VStack(spacing: 8) {
-            // 模式選擇
+            // 模式選擇分段控制器
             Picker("遊戲模式", selection: $vm.gameMode) {
                 ForEach(GameMode.allCases) { mode in
                     Text(mode.rawValue).tag(mode)
@@ -320,6 +354,8 @@ struct ContentView: View {
     }
     
     // MARK: - 模式 1：人機切磋 (1 人 vs 1~3 AI)
+    
+    /// 人機切磋對決畫面（上方展示 AI 對手暗牌／明牌，下方為玩家出拳操作盤）
     private var vsAIView: some View {
         let humanPlayer = viewModel.players.first(where: { !$0.isAI })
         let aiPlayers = viewModel.players.filter { $0.isAI }
@@ -418,6 +454,8 @@ struct ContentView: View {
     }
     
     // MARK: - 模式 2：同機輪流暗選模式 (2 ~ 4 人 Pass & Play)
+    
+    /// 輪流暗選對決畫面（防窺傳遞提示、單人選拳介面與最終開牌揭曉）
     private var pvpPassView: some View {
         let cardWidth: CGFloat = viewModel.playerCount == 2 ? 95 : (viewModel.playerCount == 3 ? 84 : 72)
         let cardHeight: CGFloat = viewModel.playerCount == 2 ? 125 : (viewModel.playerCount == 3 ? 112 : 98)
@@ -514,6 +552,8 @@ struct ContentView: View {
     }
     
     // MARK: - 模式 3：雙人同屏面對面對決 (Face-to-Face)
+    
+    /// 雙人同屏面對面出拳畫面（上方玩家反向 180 度，雙方同時盲選鎖定後自動開牌）
     private var pvpTogetherView: some View {
         VStack(spacing: 8) {
             // 上半部：玩家二操作區 (倒轉 180 度)
@@ -648,6 +688,11 @@ struct ContentView: View {
     }
     
     // MARK: - 共用元件：五行按鈕排
+    
+    /// 五行出拳按鈕水平並列列
+    /// - Parameters:
+    ///   - selected: 當前選中的五行
+    ///   - onSelect: 點擊出拳回呼
     private func fiveElementButtons(selected: FiveElement?, onSelect: @escaping (FiveElement) -> Void) -> some View {
         HStack(spacing: 10) {
             ForEach(FiveElement.allCases) { el in
@@ -663,6 +708,8 @@ struct ContentView: View {
     }
     
     // MARK: - 戰況資訊卡
+    
+    /// 戰況解說看板與重新喚起全螢幕動畫之快捷按鈕
     private var announcementBanner: some View {
         VStack(spacing: 6) {
             Text(viewModel.announcementText)
@@ -671,6 +718,7 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(3)
             
+            // 若回合已揭曉且有紀錄，提供手動重開大劇院動畫之按鈕
             if viewModel.isRevealed, viewModel.lastRecord != nil {
                 Button {
                     viewModel.activeClashIndex = 0
@@ -703,7 +751,9 @@ struct ContentView: View {
     }
 }
 
-// MARK: - 規則說明彈窗視圖
+// MARK: - 規則說明彈窗視圖 (RulesSheetView)
+
+/// 包含五行相生相剋圖鑑與詳細拳理規則說明的彈窗表單
 struct RulesSheetView: View {
     @Environment(\.dismiss) private var dismiss
     
@@ -711,8 +761,10 @@ struct RulesSheetView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    // 五行生剋幾何循環圖鑑
                     WuXingDiagramView()
                     
+                    // 規則條目
                     VStack(alignment: .leading, spacing: 12) {
                         Text("【遊戲規則說明】")
                             .font(.elementChinese(size: 16))
@@ -761,6 +813,7 @@ struct RulesSheetView: View {
         #endif
     }
     
+    /// 規則單列項目
     private func ruleRow(icon: String, title: String, desc: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
@@ -781,17 +834,24 @@ struct RulesSheetView: View {
     }
 }
 
-// MARK: - 對戰歷史記錄清單視圖
+// MARK: - 對戰歷史記錄清單視圖 (HistorySheetView)
+
+/// 顯示當前對局進度與歷史戰局結算紀錄的彈窗表單
 struct HistorySheetView: View {
+    /// 綁定之遊戲視圖模型
     @Bindable var viewModel: FiveElementsGameViewModel
     @Environment(\.dismiss) private var dismiss
+    /// 清除歷史紀錄確認對話框
     @State private var showClearConfirm: Bool = false
+    /// 已展開各回合明細的場次 ID 集合
     @State private var expandedBattleIds: Set<UUID> = []
     
+    /// 透過 ViewModel 初始化
     init(viewModel: FiveElementsGameViewModel) {
         self.viewModel = viewModel
     }
     
+    /// 方便預覽用的初始化
     init(history: [RoundRecord] = []) {
         let vm = FiveElementsGameViewModel()
         vm.history = history
@@ -882,6 +942,8 @@ struct HistorySheetView: View {
     }
     
     // MARK: - 整場對戰記錄卡片
+    
+    /// 單一已完結對戰場次摘要卡片（支援展開查看各回合出拳細節）
     @ViewBuilder
     private func battleCard(_ battle: BattleRecord) -> some View {
         let isExpanded = expandedBattleIds.contains(battle.id)
@@ -1002,6 +1064,8 @@ struct HistorySheetView: View {
     }
     
     // MARK: - 勝負結果標籤
+    
+    /// 勝負結果膠囊徽章
     @ViewBuilder
     private func outcomeBadge(_ outcome: BattleOutcome) -> some View {
         switch outcome {
@@ -1036,6 +1100,8 @@ struct HistorySheetView: View {
     }
     
     // MARK: - 單回合記錄行
+    
+    /// 單次回合戰況紀錄列
     @ViewBuilder
     private func roundRow(_ record: RoundRecord) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -1097,6 +1163,8 @@ struct HistorySheetView: View {
         .padding(.vertical, 2)
     }
 }
+
+// MARK: - 預覽 (Preview)
 
 #Preview {
     ContentView()

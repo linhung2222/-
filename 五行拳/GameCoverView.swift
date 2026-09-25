@@ -2,29 +2,42 @@
 //  GameCoverView.swift
 //  五行拳
 //
-//  Created on 2026/9/25.
+//  遊戲封面與啟動導引視圖模組（Game Cover & Splash Screen）
+//  呈現古典武道玄幻意境：五行相生環繞光圈、特殊金石雕琢造型字、背景微粒光點與沉浸式呼吸點擊提示
 //
 
 import SwiftUI
 
 // MARK: - 遊戲封面視圖 (Game Cover / Splash Screen)
+
+/// 遊戲主封面與開場引導視圖
+/// 當應用程式啟動時展示，營造形意五行拳法大氣磅礡之武學意境
+/// 具備流暢進場動畫，並於顯示 2 秒後在中央偏下區域淡入呼吸閃爍之「點擊進入遊戲」提示
 struct GameCoverView: View {
-    /// 點擊進入遊戲的回調
+    /// 點擊封面後推進進入主遊戲畫面的回呼閉包
     var onStartGame: () -> Void
     
-    // 動態狀態
+    // MARK: - 動畫狀態變數
+    
+    /// 整體視覺元件進場淡入與縮放旗標
     @State private var appearAnimation = false
+    /// 五行外環連續緩慢旋轉角度（0 ~ 360 度）
     @State private var rotationAngle: Double = 0
+    /// 節點光暈呼吸縮放旗標
     @State private var elementPulse = false
+    /// 是否已達 2 秒並顯示「點擊進入遊戲」提示文字
     @State private var showPrompt = false
+    /// 提示文字平滑呼吸微閃旗標
     @State private var promptBlink = false
+    /// 防止重複快速點擊的淡出中旗標
     @State private var isDismissing = false
+    /// 背景靈氣光暈縮放比例
     @State private var auraScale: CGFloat = 0.95
     
-    // 五行相生次序：金 -> 水 -> 木 -> 火 -> 土
+    /// 五行相生自然循環次序：金 -> 水 -> 木 -> 火 -> 土
     private let generatingOrder: [FiveElement] = [.metal, .water, .wood, .fire, .earth]
     
-    // 背景浮動微粒的隨機分佈
+    /// 背景漂浮微粒的偽隨機固定座標與大小分佈清單（避免每次重繪引發跳動）
     private let backgroundStars: [(x: CGFloat, y: CGFloat, size: CGFloat, opacity: Double)] = (0..<28).map { i in
         let seed = Double(i)
         let x = CGFloat((sin(seed * 91.0) + 1.0) / 2.0)
@@ -40,14 +53,14 @@ struct GameCoverView: View {
                 // 1. 深色玄幻武道背景
                 coverBackground
                 
-                // 2. 漂浮五行靈韻光點
+                // 2. 漂浮五行靈韻星光粒子
                 floatingParticles(size: geometry.size)
                 
-                // 3. 主要內容區域：AppIcon 與 特殊造型遊戲名稱
+                // 3. 主要內容區域：AppIcon 與特殊雕琢遊戲名稱
                 VStack(spacing: 0) {
                     Spacer(minLength: 24)
                     
-                    // 中央：五行意象環繞的 AppIcon
+                    // 中央：五行意象環繞之專屬 AppIcon
                     appIconSection
                         .scaleEffect(appearAnimation ? 1.0 : 0.72)
                         .opacity(appearAnimation ? 1.0 : 0.0)
@@ -55,7 +68,7 @@ struct GameCoverView: View {
                     Spacer()
                         .frame(height: 20)
                     
-                    // 遊戲名稱：特殊造型字體與五行意象融合
+                    // 遊戲名稱：融合金木水火土五彩光華與特殊造型字體
                     gameTitleSection
                         .scaleEffect(appearAnimation ? 1.0 : 0.85)
                         .opacity(appearAnimation ? 1.0 : 0.0)
@@ -63,13 +76,13 @@ struct GameCoverView: View {
                     Spacer()
                         .frame(height: 18)
                     
-                    // 五行拳法意象飾條（金木水火土五拳融合）
+                    // 五行拳法意象飾條（金·劈拳、木·崩拳、水·鑽拳、火·炮拳、土·橫拳）
                     fiveElementsBadgeBar
                         .opacity(appearAnimation ? 0.9 : 0.0)
                     
                     Spacer(minLength: 20)
                     
-                    // 4. 中間偏下區域：兩秒後緩慢閃爍的「點擊進入遊戲」小白字
+                    // 4. 中間偏下區域：延遲 2 秒後緩慢閃爍之「點擊進入遊戲」提示
                     promptSection
                         .frame(height: 54)
                     
@@ -79,7 +92,7 @@ struct GameCoverView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
-            // 點擊判定：等到小白字顯示後，玩家點擊任意位置即可淡出進入遊戲
+            // 點擊判定：等到提示白字顯示後，玩家點擊螢幕任意位置即可淡出進入遊戲
             .onTapGesture {
                 handleUserTap()
             }
@@ -90,14 +103,16 @@ struct GameCoverView: View {
         }
     }
     
-    // MARK: - 1. 背景漸變
+    // MARK: - 1. 背景漸層
+    
+    /// 深邃夜空黑搭配五行相融的中心多色流光光暈
     private var coverBackground: some View {
         ZStack {
-            // 深邃夜空黑
+            // 深邃夜空黑底色
             Color(red: 0.03, green: 0.04, blue: 0.08)
                 .ignoresSafeArea()
             
-            // 五行相融中心流光光暈
+            // 五行相融中心流光光暈（金色、火焰赤、水脈藍、青木綠）
             RadialGradient(
                 gradient: Gradient(colors: [
                     Color(red: 0.85, green: 0.72, blue: 0.35).opacity(0.18), // 金光
@@ -113,7 +128,7 @@ struct GameCoverView: View {
             .scaleEffect(auraScale)
             .ignoresSafeArea()
             
-            // 頂底漸變遮罩，營造舞台聚焦感
+            // 頂底漸層微暗遮罩，營造舞台聚焦感
             LinearGradient(
                 colors: [
                     Color.black.opacity(0.65),
@@ -128,6 +143,9 @@ struct GameCoverView: View {
     }
     
     // MARK: - 2. 漂浮光點微粒
+    
+    /// 利用 SwiftUI Canvas 在背景繪製星芒微粒
+    /// - Parameter size: 畫布總尺寸
     private func floatingParticles(size: CGSize) -> some View {
         Canvas { context, canvasSize in
             for star in backgroundStars {
@@ -146,9 +164,11 @@ struct GameCoverView: View {
     }
     
     // MARK: - 3. AppIcon 與 五行元素圍繞環
+    
+    /// 中央 App 圖示與周圍相生公轉圓形節點
     private var appIconSection: some View {
         ZStack {
-            // 五行光環 (旋轉生剋動態光帶)
+            // 五行光環（角向漸層連續流光光帶）
             Circle()
                 .stroke(
                     AngularGradient(
@@ -169,7 +189,7 @@ struct GameCoverView: View {
                 .blur(radius: 1.2)
                 .opacity(0.85)
             
-            // 外圈呼吸光暈
+            // 外圈呼吸柔光光暈
             Circle()
                 .fill(
                     RadialGradient(
@@ -182,14 +202,14 @@ struct GameCoverView: View {
                 .frame(width: 230, height: 230)
                 .scaleEffect(elementPulse ? 1.06 : 0.95)
             
-            // 核心 AppIcon 圖像容器
+            // 核心 AppIcon 圖像容器與圓角陰影
             ZStack {
                 RoundedRectangle(cornerRadius: 32, style: .continuous)
                     .fill(Color.black.opacity(0.65))
                     .frame(width: 136, height: 136)
                     .shadow(color: Color.black.opacity(0.7), radius: 18, x: 0, y: 8)
                 
-                // 專屬 AppIcon 圖片資產
+                // 專屬 AppIcon 圖片資源
                 Image("GameAppIcon")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -208,7 +228,7 @@ struct GameCoverView: View {
                     )
             }
             
-            // 五行意象節點環繞 (依相生次序：金 -> 水 -> 木 -> 火 -> 土)
+            // 五行意象節點環繞佈局（依相生順序：金 -> 水 -> 木 -> 火 -> 土）
             ForEach(Array(generatingOrder.enumerated()), id: \.element.id) { index, element in
                 elementOrbitNode(element: element, index: index, total: generatingOrder.count)
             }
@@ -216,10 +236,14 @@ struct GameCoverView: View {
         .frame(width: 250, height: 250)
     }
     
-    /// 五行節點佈局於圓周
+    /// 五行節點佈局於同心圓周上的單一元素圓珠
+    /// - Parameters:
+    ///   - element: 對應的五行元素
+    ///   - index: 在環繞陣列中的序號
+    ///   - total: 總節點數（5 個）
     private func elementOrbitNode(element: FiveElement, index: Int, total: Int) -> some View {
         let angleStep = (2 * Double.pi) / Double(total)
-        // 起始角度設在頂端 (-pi/2) 並順時針排列
+        // 起始角度設在頂端 (-pi/2) 並依序順時鐘排列
         let currentAngle = angleStep * Double(index) - (Double.pi / 2)
         let radius: CGFloat = 104
         
@@ -233,7 +257,7 @@ struct GameCoverView: View {
                 .frame(width: 36, height: 36)
                 .scaleEffect(elementPulse ? 1.15 : 0.92)
             
-            // 節點主體
+            // 節點主體圓球
             Circle()
                 .fill(
                     LinearGradient(
@@ -249,7 +273,7 @@ struct GameCoverView: View {
                 )
                 .shadow(color: element.primaryColor.opacity(0.85), radius: 6)
             
-            // 元素字樣
+            // 元素漢字（金、木、水、火、土）
             Text(element.rawValue)
                 .font(.elementChinese(size: 14))
                 .foregroundColor(.white)
@@ -257,10 +281,12 @@ struct GameCoverView: View {
         .offset(x: x, y: y)
     }
     
-    // MARK: - 4. 遊戲名稱（特殊造型字體與元素意象圍繞及融合）
+    // MARK: - 4. 遊戲名稱（特殊造型字體與五行意象雕琢）
+    
+    /// 遊戲標題視覺看板：古風導引、五行拳立體雕刻字與朱砂印章
     private var gameTitleSection: some View {
         VStack(spacing: 8) {
-            // 古風五行修飾導引
+            // 古風五行修飾導引飾線
             HStack(spacing: 8) {
                 Rectangle()
                     .fill(LinearGradient(colors: [.clear, Color(red: 0.85, green: 0.72, blue: 0.35)], startPoint: .leading, endPoint: .trailing))
@@ -276,7 +302,7 @@ struct GameCoverView: View {
                     .frame(width: 38, height: 1.5)
             }
             
-            // 主標題「五 行 拳」：特殊造型字體，融合金木水火土五彩光華與元素雕琢
+            // 主標題「五 行 拳」：特殊造型字體，融合金木水火土五彩光華與立體雕琢
             HStack(spacing: 12) {
                 // 「五」：金土相融之剛毅
                 stylizedCharacterView(
@@ -328,10 +354,13 @@ struct GameCoverView: View {
         }
     }
     
-    /// 特殊造型單字組件：立體層次、外光暈與金屬高光雕琢
+    /// 特殊造型單字元件：立體層次、外光暈擴散與金屬高光雕琢
+    /// - Parameters:
+    ///   - char: 單一漢字（五、行、拳）
+    ///   - gradient: 該字所套用之五行專屬漸層色彩
     private func stylizedCharacterView(char: String, gradient: [Color]) -> some View {
         ZStack {
-            // 背後深墨陰影
+            // 底層深墨陰影
             Text(char)
                 .font(.elementChinese(size: 54))
                 .foregroundColor(.black.opacity(0.85))
@@ -404,7 +433,9 @@ struct GameCoverView: View {
         }
     }
     
-    // MARK: - 5. 中間偏下區域：兩秒後緩慢閃爍的「點擊進入遊戲」小白字
+    // MARK: - 5. 中間偏下區域：2 秒後緩慢閃爍之「點擊進入遊戲」小白字
+    
+    /// 提示文字元件：具備呼吸微閃與平滑轉場
     private var promptSection: some View {
         VStack(spacing: 8) {
             if showPrompt {
@@ -427,25 +458,27 @@ struct GameCoverView: View {
         }
     }
     
-    // MARK: - 啟動各階段動畫
+    // MARK: - 各階段動畫啟動排程
+    
+    /// 啟動封面各層次的動畫時間線
     private func startEntryAnimations() {
         // 1. 封面主視覺淡入與縮放
         withAnimation(.easeOut(duration: 1.0)) {
             appearAnimation = true
         }
         
-        // 2. 元素環持續旋轉
+        // 2. 元素外環 26 秒持續平滑旋轉
         withAnimation(.linear(duration: 26.0).repeatForever(autoreverses: false)) {
             rotationAngle = 360
         }
         
-        // 3. 光暈呼吸節奏
+        // 3. 背景與節點光暈呼吸節奏
         withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
             elementPulse = true
             auraScale = 1.08
         }
         
-        // 4. 嚴格符合需求：封面顯示 2 秒後，在中間偏下的地方出現緩慢閃爍小白字
+        // 4. 嚴格符合產品規格：封面顯示 2 秒後，在中間偏下處淡入緩慢閃爍之小白字
         Task {
             try? await Task.sleep(for: .seconds(2.0))
             
@@ -454,7 +487,7 @@ struct GameCoverView: View {
                     showPrompt = true
                 }
                 
-                // 緩慢閃爍動畫 (1.3 秒循環一次平滑呼吸)
+                // 緩慢閃爍呼吸動畫（1.3 秒循環一次平滑呼吸）
                 withAnimation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true)) {
                     promptBlink = true
                 }
@@ -462,20 +495,26 @@ struct GameCoverView: View {
         }
     }
     
-    // MARK: - 處理玩家點擊
+    // MARK: - 處理玩家觸控點擊事件
+    
+    /// 當玩家點擊螢幕時的處理邏輯
     private func handleUserTap() {
-        // 必須等到小白字顯示後，點擊才觸發淡出進入遊戲
+        // 必須等到「點擊進入遊戲」提示字出現後，點擊才觸發淡出進入遊戲
         guard showPrompt, !isDismissing else { return }
         isDismissing = true
         
+        // 觸發 iOS 原生觸覺回饋（Taptic Engine 中度衝擊反饋）
         #if os(iOS)
         let impact = UIImpactFeedbackGenerator(style: .medium)
         impact.impactOccurred()
         #endif
         
+        // 執行外部進入遊戲之回呼
         onStartGame()
     }
 }
+
+// MARK: - 預覽
 
 #Preview {
     GameCoverView(onStartGame: {})

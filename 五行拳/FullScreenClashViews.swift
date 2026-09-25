@@ -2,26 +2,54 @@
 //  FullScreenClashViews.swift
 //  五行拳
 //
+//  全螢幕電影級五行相生相剋動態對決視圖模組
+//  以沈浸式全螢幕視覺呈現五行拳理之相生相剋哲學：
+//    【五大相剋】
+//      1. 金剋木（劈拳破崩拳）：金色神兵破空橫斬參天巨樹，木屑碎葉四散
+//      2. 木剋土（崩拳破橫拳）：青木神根深扎大地，撕裂厚土堅岩破土而出
+//      3. 土剋水（橫拳破鑽拳）：崇山巍峨天降岩壁，萬鈞厚土截斷奔湧狂浪
+//      4. 水剋火（鑽拳破炮拳）：九天銀河狂濤奔湧，巨浪傾盆澆熄沖天烈焰並騰起白霧
+//      5. 火剋金（炮拳破劈拳）：熊熊火海烈焰熾烤，銷鑠神兵鋼刃熔成金液滴落
+//    【五大相生】
+//      6. 金生水（劈拳生鑽拳）：寶刀金氣凝聚天地靈液，凝露化為澎湃瀑布蔚藍清泉
+//      7. 水生木（鑽拳生崩拳）：靈泉化作及時甘霖，滋養青木神樹破土暴長花開繁盛
+//      8. 木生火（崩拳生炮拳）：靈木良柴投入火海，薪火相傳烈焰轟鳴金星漫天
+//      9. 火生土（炮拳生橫拳）：熾熱神火焚化萬物，岩漿冷卻凝結成深厚沃土與玄武岩山
+//      10. 土生金（橫拳生劈拳）：厚土大地裂開靈脈，百鍊神鋒吸納地脈金精破土拔出
+//    【勢均力敵】
+//      11. 同拳相撞：雙方同拳氣機相抵，產生強烈光環衝擊波各退數步
+//
 
 import SwiftUI
 
 // MARK: - 全螢幕相生相剋結算動態對決視圖 (Full-Screen Interaction Theater)
 
+/// 電影級全螢幕生剋結算劇院視圖
+/// 提供上方對陣雙方名片與生剋標籤、中央大比例動態演繹舞台、下方詩意戰況解說與分組切換控制項
 struct FullScreenClashView: View {
+    /// 該回合所有兩兩交互作用清單
     let interactions: [PairwiseInteraction]
+    /// 該回合玩家動作清單（用於平手時判斷相同元素）
     let actions: [PlayerRoundAction]
+    /// 當前正在展示的生剋事件索引（Binding）
     @Binding var activeIndex: Int
+    /// 劇院視圖是否顯示（Binding）
     @Binding var isPresented: Bool
+    /// 下一回合開始之回呼閉包（可選）
     var onNextRound: (() -> Void)? = nil
     
+    /// 劇院切換時的全螢幕閃白效果旗標
     @State private var screenFlash: Bool = false
+    /// 強制刷新中央舞臺動態的 UUID
     @State private var stageKey: UUID = UUID()
     
+    /// 當前聚焦展示的單一生剋事件
     var currentInteraction: PairwiseInteraction? {
         guard !interactions.isEmpty, interactions.indices.contains(activeIndex) else { return nil }
         return interactions[activeIndex]
     }
     
+    /// 若無生剋事件（雙方出同拳平局），取得雙方相同的五行元素
     var tieElement: FiveElement? {
         if interactions.isEmpty, let first = actions.first?.choice {
             return first
@@ -31,12 +59,12 @@ struct FullScreenClashView: View {
     
     var body: some View {
         ZStack {
-            // 全螢幕深色玄幻背景與生剋流光
+            // 全螢幕深色玄幻背景與雙方元素流光光暈
             backgroundAtmosphere
                 .ignoresSafeArea()
             
             VStack(spacing: 12) {
-                // 頂部看板：跳過按鈕與戰鬥雙方名牌
+                // 頂部看板：關閉按鈕與戰鬥雙方名牌
                 headerFightersBar
                     .padding(.top, 12)
                     .padding(.horizontal, 16)
@@ -51,13 +79,13 @@ struct FullScreenClashView: View {
                 
                 Spacer(minLength: 4)
                 
-                // 底部結算戰況解說與操作按鈕
+                // 底部結算戰況解說與操作按鈕面板
                 bottomControlPanel
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
             }
             
-            // 震撼全螢幕閃光白屏/衝擊
+            // 震撼全螢幕閃光白屏轉場
             if screenFlash {
                 Color.white
                     .ignoresSafeArea()
@@ -73,6 +101,7 @@ struct FullScreenClashView: View {
         }
     }
     
+    /// 觸發舞臺重新播放動畫與閃白轉場
     private func triggerStageAnimation() {
         stageKey = UUID()
         withAnimation(.easeOut(duration: 0.2)) {
@@ -86,6 +115,8 @@ struct FullScreenClashView: View {
     }
     
     // MARK: - 背景玄幻靈氣氛圍
+    
+    /// 依據對決雙方五行主色混合渲染的流光光暈
     private var backgroundAtmosphere: some View {
         let color1: Color = currentInteraction?.sourceElement.primaryColor ?? tieElement?.primaryColor ?? .purple
         let color2: Color = currentInteraction?.targetElement.primaryColor ?? tieElement?.secondaryColor ?? .blue
@@ -109,11 +140,13 @@ struct FullScreenClashView: View {
         }
     }
     
-    // MARK: - 頂部對戰雙方資訊
+    // MARK: - 頂部對戰雙方資訊列
+    
+    /// 頂部對陣名片：施展方、生剋徽記、受作用方與關閉劇院叉號
     private var headerFightersBar: some View {
         HStack(alignment: .center) {
             if let item = currentInteraction {
-                // 施展方 (Source)
+                // 施展方（Source）
                 HStack(spacing: 8) {
                     ZStack {
                         Circle()
@@ -155,7 +188,7 @@ struct FullScreenClashView: View {
                 
                 Spacer()
                 
-                // 受作用方 (Target)
+                // 受作用方（Target）
                 HStack(spacing: 8) {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(item.targetName)
@@ -189,7 +222,7 @@ struct FullScreenClashView: View {
                     .foregroundColor(.yellow)
             }
             
-            // 跳過/關閉按鈕
+            // 跳過／關閉按鈕
             Button {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     isPresented = false
@@ -211,12 +244,14 @@ struct FullScreenClashView: View {
         )
     }
     
-    // MARK: - 中央核心全螢幕動態互動特效
+    // MARK: - 中央核心全螢幕動態互動特效舞臺
+    
+    /// 依據相生或相剋對決組合，自動分流派發至 11 種專屬電影級動畫舞臺
     @ViewBuilder
     private var centralClashStage: some View {
         if let item = currentInteraction {
             switch (item.sourceElement, item.targetElement) {
-            // 5 類相生
+            // 五類相生
             case (.metal, .water):
                 MetalGeneratesWaterCinematicView()
             case (.water, .wood):
@@ -228,7 +263,7 @@ struct FullScreenClashView: View {
             case (.earth, .metal):
                 EarthGeneratesMetalCinematicView()
                 
-            // 5 類相剋
+            // 五類相剋
             case (.metal, .wood):
                 MetalOvercomesWoodCinematicView()
             case (.wood, .earth):
@@ -249,6 +284,8 @@ struct FullScreenClashView: View {
     }
     
     // MARK: - 底部結算控制面板
+    
+    /// 底部戰況敘事與換幕按鈕列
     private var bottomControlPanel: some View {
         VStack(spacing: 10) {
             if let item = currentInteraction {
@@ -289,7 +326,7 @@ struct FullScreenClashView: View {
             
             // 控制操作按鈕列
             HStack(spacing: 12) {
-                // 若有多組對決，提供「觀看下一組」
+                // 若有多組對決，提供「觀看下一組」按鈕
                 if interactions.count > 1 {
                     Button {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
@@ -367,7 +404,10 @@ struct FullScreenClashView: View {
 
 // MARK: ================= 全螢幕相剋動態動畫 (5 類) =================
 
-// 1. 金剋木：利刃破空，大刀橫斬參天巨樹，木屑斷枝漫天飛濺
+// MARK: 1. 金剋木：利刃破空，大刀橫斬參天巨樹，木屑斷枝漫天飛濺
+
+/// 金剋木（劈拳破崩拳）電影級全螢幕動畫
+/// 金色大刀迅猛揮落，伴隨璀璨斬痕，巨樹應聲斷裂兩半，漫天飛舞翠綠落葉與木屑
 struct MetalOvercomesWoodCinematicView: View {
     @State private var bladeSwing: CGFloat = -80
     @State private var slashTriggered: Bool = false
@@ -378,7 +418,7 @@ struct MetalOvercomesWoodCinematicView: View {
         ZStack {
             // 右側巨樹
             HStack(spacing: treeSplit * 25) {
-                // 樹幹左半部 (被砍斷向左傾斜)
+                // 樹幹左半部（被砍斷向左傾斜）
                 VStack(spacing: 0) {
                     Image(systemName: "leaf.fill")
                         .font(.system(size: 45))
@@ -389,7 +429,7 @@ struct MetalOvercomesWoodCinematicView: View {
                 }
                 .rotationEffect(.degrees(-treeSplit * 18))
                 
-                // 樹幹右半部 (被砍斷向右傾斜)
+                // 樹幹右半部（被砍斷向右傾斜）
                 VStack(spacing: 0) {
                     Image(systemName: "leaf.fill")
                         .font(.system(size: 55))
@@ -416,7 +456,7 @@ struct MetalOvercomesWoodCinematicView: View {
                 .transition(.opacity)
             }
             
-            // 左上方金色大刀 (大刀一揮斬落)
+            // 左上方金色大刀（大刀一揮斬落）
             VStack(spacing: 0) {
                 // 刀尖與鋒刃
                 ZStack {
@@ -486,7 +526,10 @@ struct MetalOvercomesWoodCinematicView: View {
     }
 }
 
-// 2. 木剋土：青木盤根如神龍破土，崩碎厚土堅岩
+// MARK: 2. 木剋土：青木盤根如神龍破土，崩碎厚土堅岩
+
+/// 木剋土（崩拳破橫拳）電影級全螢幕動畫
+/// 青木神根自地底破出，蜿蜒如龍向上竄生，堅固岩層巨山崩裂四散
 struct WoodOvercomesEarthCinematicView: View {
     @State private var rootsGrowth: CGFloat = 0
     @State private var rockCracked: Bool = false
@@ -567,7 +610,10 @@ struct WoodOvercomesEarthCinematicView: View {
     }
 }
 
-// 3. 土剋水：崇山築堤，巨石如天降神壁轟然墜落，徹底截斷奔湧大水
+// MARK: 3. 土剋水：崇山築堤，巨石如天降神壁轟然墜落，徹底截斷奔湧大水
+
+/// 土剋水（橫拳破鑽拳）電影級全螢幕動畫
+/// 萬鈞崇山巨石由九天轟然墜落，激發震波強行阻斷並壓制澎湃水浪
 struct EarthOvercomesWaterCinematicView: View {
     @State private var mountainDrop: CGFloat = -260
     @State private var waterDam: Bool = false
@@ -637,7 +683,10 @@ struct EarthOvercomesWaterCinematicView: View {
     }
 }
 
-// 4. 水剋火：狂瀾傾盆澆滅烈火，升騰滾滾白霧蒸氣
+// MARK: 4. 水剋火：狂濤傾盆澆滅烈火，升騰滾滾白霧蒸氣
+
+/// 水剋火（鑽拳破炮拳）電影級全螢幕動畫
+/// 巨型浪濤自左側奔湧撲蓋右方熊熊大火，火勢瞬間熄滅並爆發大量蒸氣白霧
 struct WaterOvercomesFireCinematicView: View {
     @State private var waveSurge: CGFloat = -260
     @State private var fireExtinguished: Bool = false
@@ -663,7 +712,7 @@ struct WaterOvercomesFireCinematicView: View {
             .frame(height: 220)
             .offset(x: 50, y: 20)
             
-            // 左側奔湧撲滅的滔天狂瀾巨浪
+            // 左側奔湧撲滅的滔天狂濤巨浪
             Path { p in
                 p.move(to: CGPoint(x: -80, y: 60))
                 p.addCurve(
@@ -712,7 +761,10 @@ struct WaterOvercomesFireCinematicView: View {
     }
 }
 
-// 5. 火剋金：烈焰火海銷鑠金刀，大刀燒至赤紅軟化熔化滴落
+// MARK: 5. 火剋金：烈焰火海銷鑠金刀，大刀燒至赤紅軟化熔化滴落
+
+/// 火剋金（炮拳破劈拳）電影級全螢幕動畫
+/// 烈焰包圍金色神兵，高溫熾烤下刀身泛起赤紅高熱並軟化熔融，鐵水滴落消散
 struct FireOvercomesMetalCinematicView: View {
     @State private var fireEngulf: Bool = false
     @State private var metalMelt: Bool = false
@@ -790,7 +842,10 @@ struct FireOvercomesMetalCinematicView: View {
 
 // MARK: ================= 全螢幕相生動態動畫 (5 類) =================
 
-// 6. 金生水：靈刃化泉，金刀靈光震盪凝出源源不絕的蔚藍清泉
+// MARK: 6. 金生水：靈刃化泉，金刀靈光震顫凝出源源不絕的蔚藍清泉
+
+/// 金生水（劈拳生鑽拳）電影級全螢幕動畫
+/// 金刀高懸泛起純金光華，刀尖凝露化珠滴落，於下方匯聚為奔騰蔚藍清泉瀑布
 struct MetalGeneratesWaterCinematicView: View {
     @State private var bladeGlow: Bool = false
     @State private var waterFlow: CGFloat = 0
@@ -858,7 +913,10 @@ struct MetalGeneratesWaterCinematicView: View {
     }
 }
 
-// 7. 水生木：天降靈泉甘霖，靈樹瞬間拔地而起、枝繁葉茂生生不息
+// MARK: 7. 水生木：天降靈泉甘霖，靈樹瞬間拔地而起、枝繁葉茂生生不息
+
+/// 水生木（鑽拳生崩拳）電影級全螢幕動畫
+/// 上方雲層傾降甘霖雨露，下方靈木吸飽水汽暴風生長，枝頭綻放璀璨繁花
 struct WaterGeneratesWoodCinematicView: View {
     @State private var rainFall: Bool = false
     @State private var treeBloom: CGFloat = 0.2
@@ -940,7 +998,10 @@ struct WaterGeneratesWoodCinematicView: View {
     }
 }
 
-// 8. 木生火：青木靈枝投薪入火，神火轟鳴騰空，烈焰倍盛
+// MARK: 8. 木生火：青木靈枝投薪入火，神火轟鳴騰空，烈焰倍盛
+
+/// 木生火（崩拳生炮拳）電影級全螢幕動畫
+/// 左右靈木投薪入爐，中心烈焰獲得燃料後暴漲轟鳴，騰躍璀璨金紅大火與漫天星火
 struct WoodGeneratesFireCinematicView: View {
     @State private var woodFeed: Bool = false
     @State private var fireSurge: CGFloat = 0.3
@@ -1004,7 +1065,10 @@ struct WoodGeneratesFireCinematicView: View {
     }
 }
 
-// 9. 火生土：神火焚化虛妄，熔岩冷卻凝結成深厚沃土與玄武岩山
+// MARK: 9. 火生土：神火焚化虛妄，熔岩冷卻凝結成深厚沃土與玄武岩山
+
+/// 火生土（炮拳生橫拳）電影級全螢幕動畫
+/// 上方神火焚化四方化為暖紅光霞，餘燼降落下方冷卻凝成巍峨厚重大地與山岩
 struct FireGeneratesEarthCinematicView: View {
     @State private var fireCalm: Bool = false
     @State private var earthSolidify: CGFloat = 0.1
@@ -1053,7 +1117,10 @@ struct FireGeneratesEarthCinematicView: View {
     }
 }
 
-// 10. 土生金：厚土裂開地脈靈脈，金光沖天，百鍊神鋒金刀破土拔出
+// MARK: 10. 土生金：厚土裂開地脈靈脈，金光沖天，百鍊神鋒金刀破土拔出
+
+/// 土生金（橫拳生劈拳）電影級全螢幕動畫
+/// 厚實岩層向兩側裂開，沖天金芒中百鍊神刀出鞘破土拔出，金石閃耀
 struct EarthGeneratesMetalCinematicView: View {
     @State private var earthPart: CGFloat = 0
     @State private var bladeRise: CGFloat = 80
@@ -1061,7 +1128,7 @@ struct EarthGeneratesMetalCinematicView: View {
     
     var body: some View {
         ZStack {
-            // 金光靈脈射線
+            // 金光靈脈射線光圈
             if goldenRays {
                 Circle()
                     .stroke(Color.yellow.opacity(0.8), lineWidth: 4)
@@ -1117,8 +1184,12 @@ struct EarthGeneratesMetalCinematicView: View {
     }
 }
 
-// 11. 勢均力敵 (同拳對撼) 全螢幕衝擊波
+// MARK: 11. 勢均力敵 (同拳對撼) 全螢幕衝擊波
+
+/// 同拳平手電影級全螢幕動畫
+/// 雙方出相同拳法高速對撞，迸發強烈同色衝擊波反彈震盪
 struct TieCinematicView: View {
+    /// 雙方共同出拳之五行屬性
     let element: FiveElement
     
     @State private var clashOffset: CGFloat = 130
@@ -1176,8 +1247,11 @@ struct TieCinematicView: View {
     }
 }
 
-// MARK: - 波浪形狀輔助
+// MARK: - 波浪形狀輔助路徑
+
+/// 正弦波水流 Shape，用於動態模擬水流奔湧與瀑布起伏
 struct WaveShape: Shape {
+    /// 正弦波相位偏移（驅動連續滾動）
     var phase: CGFloat
     
     var animatableData: CGFloat {
